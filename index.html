@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="google" content="notranslate">
+    <title>Heartopia timer</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <style>
+        :root { 
+            --bg: #f2f4f7; --card: #ffffff; --text: #1a1f27; --border: #e2e8f0; 
+            --primary: #2563eb; --accent: #3b82f6; 
+            --overlay: rgba(0,0,0,0.5); --switch-bg: #e2e8f0; --select: #eef2ff; --danger: #ff4d4d;
+            --tab-active: #1a1f27; --logo-color: #2563eb; --title-color: #1a1f27;
+            --footer-text: #64748b;
+        }
+        body.dark-mode { 
+            --bg: #0f172a; --card: #1e293b; --text: #f8fafc; --border: #334155; 
+            --primary: #60a5fa; --accent: #3b82f6; --switch-bg: #334155; --select: #2d261e;
+            --tab-active: #ffffff; --title-color: #ffffff;
+            --footer-text: #94a3b8;
+        }
+        body { font-family: "Noto Sans JP", "Pretendard", sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; padding: 10px; transition: 0.3s; margin:0; }
+        .container { width: 100%; max-width: 650px; background: var(--card); padding: 22px; border-radius: 32px; box-shadow: 0 12px 48px rgba(0,0,0,0.1); box-sizing: border-box; }
+  
+        .footer {
+            margin-top: 20px;
+            padding-bottom: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--footer-text);
+            font-weight: 500;
+        }
+        .footer a {
+            color: inherit;
+            text-decoration: underline;
+            transition: 0.2s;
+        }
+        .footer a:hover {
+            color: var(--primary);
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .logo-area { display: flex; align-items: center; gap: 8px; }
+        .logo-dot { width: 12px; height: 12px; background: var(--logo-color); border-radius: 50%; }
+        h1 { font-size: 1.4rem; font-weight: 900; margin: 0; letter-spacing: -0.5px; color: var(--title-color); }
+        .header-controls { display: flex; gap: 8px; align-items: center; }
+        .notify-btn { background: var(--switch-bg); border: none; padding: 8px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 800; cursor: pointer; color: var(--text); }
+        .notify-btn.granted { color: var(--primary); }
+        .theme-switch { display: flex; background: var(--switch-bg); padding: 4px; border-radius: 12px; position: relative; width: 100px; }
+        .theme-switch button { flex: 1; border: none; background: none; color: #64748b; font-size: 0.7rem; font-weight: 800; padding: 6px 0; cursor: pointer; z-index: 2; }
+        .theme-switch .slider { position: absolute; top: 4px; left: 4px; width: calc(50% - 4px); height: calc(100% - 8px); background: var(--card); border-radius: 8px; transition: 0.3s; z-index: 1; }
+        body.dark-mode .theme-switch .slider { transform: translateX(100%); }
+
+        .volume-control { display: flex; align-items: center; gap: 10px; background: var(--switch-bg); padding: 10px 16px; border-radius: 16px; margin-bottom: 18px; }
+        .volume-control span { font-size: 0.85rem; font-weight: 800; color: #64748b; min-width: 45px; }
+        body.dark-mode .volume-control span { color: #cbd5e1; }
+        .volume-slider { flex: 1; -webkit-appearance: none; background: #cbd5e1; height: 6px; border-radius: 3px; outline: none; }
+        .volume-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--primary); border-radius: 50%; cursor: pointer; }
+
+        .tab-group { display: flex; gap: 8px; margin-bottom: 18px; background: var(--switch-bg); padding: 5px; border-radius: 16px; }
+        .tab { flex: 1; padding: 12px; border: none; border-radius: 12px; cursor: pointer; font-family: inherit; font-weight: 800; background: none; color: #64748b; font-size: 1rem; }
+        .tab.active { background: var(--card); color: var(--tab-active); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        @media (max-width: 550px) { .preset-grid { grid-template-columns: repeat(2, 1fr); } }
+        .preset-item { display: flex; flex-direction: column; background: var(--card); padding: 10px 14px; border-radius: 16px; border: 2px solid var(--border); cursor: pointer; position: relative; transition: all 0.2s; min-height: 56px; justify-content: center; }
+        .preset-item:hover { border-color: var(--primary); }
+        .preset-item.selected { border-color: var(--primary); background: var(--select); border-width: 2.5px; }
+        .p-name { font-weight: 800; font-size: 1.05rem; display: block; margin-bottom: 2px; line-height: 1.2; letter-spacing: -0.4px; }
+        .p-time { font-size: 0.85rem; color: #64748b; font-weight: 700; }
+        body.dark-mode .p-time { color: #ffffff !important; }
+        .edit-btn { position: absolute; top: 5px; right: 5px; font-size: 9px; font-weight: 800; color: #64748b; background: var(--bg); padding: 2px 5px; border-radius: 5px; border: 1px solid var(--border); }
+        .start-action-bar { display: flex; gap: 12px; margin-bottom: 24px; }
+        .main-start-btn { flex: 2; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 18px; font-family: inherit; font-weight: 800; cursor: pointer; font-size: 1.05rem; transition: 0.2s; }
+        .main-start-btn:disabled { background: #cbd5e1; cursor: disabled; }
+        .reset-selection-btn { flex: 1; background: var(--switch-bg); border: none; border-radius: 18px; font-family: inherit; font-weight: 700; cursor: pointer; color: var(--text); }
+        .timer-list { display: flex; flex-direction: column; gap: 12px; }
+        .item { background: var(--card); border-radius: 20px; overflow: hidden; padding: 16px; border: 2px solid var(--border); position: relative; }
+        .item.end { border-color: var(--danger); animation: shake 0.5s infinite; }
+        .progress-fill { position: absolute; top: 0; right: 0; height: 100%; background: var(--accent); opacity: 0.2; z-index: 1; border-left: 4px solid var(--accent); }
+        .item-content { position: relative; z-index: 2; display: flex; align-items: center; gap: 14px; }
+        .item-content strong { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.5px; }
+        .time-text { font-size: 1.4rem; font-weight: 900; color: var(--primary); font-variant-numeric: tabular-nums; }
+        .finish-info { font-size: 0.85rem; color: #64748b; font-weight: 700; margin-top: 3px; }
+        .adj-btn-group { display: flex; gap: 4px; margin-top: 8px; }
+        .adj-btn { border: 1px solid var(--border); background: var(--switch-bg); color: var(--text); padding: 4px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; cursor: pointer; }
+        .del-timer-btn { border: 1px solid var(--border); background: var(--switch-bg); color: var(--text); padding: 8px 14px; border-radius: 12px; font-family: inherit; font-weight: 800; font-size: 0.8rem; cursor: pointer; }
+        .item.end .del-timer-btn { background: var(--danger); color: white; border-color: var(--danger); }
+        .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:var(--overlay); z-index:200; justify-content:center; align-items:center; backdrop-filter: blur(6px); }
+        .modal-card { background:var(--card); width: 88%; max-width: 360px; padding:28px; border-radius:32px; text-align:center; box-sizing: border-box; }
+        input[type="text"], input[type="number"] { width: 100%; padding: 14px; border-radius: 14px; border: 2px solid var(--border); box-sizing: border-box; font-family: inherit; font-size: 1rem; background: var(--bg); color: var(--text); margin-bottom: 12px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-group button { flex:1; padding: 14px; border-radius: 14px; border:none; font-family:inherit; font-weight:800; cursor:pointer; font-size: 0.95rem; }
+        .btn-cancel { background: var(--switch-bg); color: var(--text); }
+        .btn-confirm { background: var(--danger); color: white; }
+        .btn-save { background: var(--primary); color: white; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(2px); } 75% { transform: translateX(-2px); } }
+    </style>
+</head>
+<body onclick="initAudio()">
+<div class="container">
+    <div class="header">
+        <div class="logo-area"><div class="logo-dot"></div><h1>ハートピアタイマー</h1></div>
+        <div class="header-controls">
+            <button id="notifyBtn" class="notify-btn" onclick="requestNotifyPermission()">🔔 通知許可</button>
+            <div class="theme-switch"><div class="slider"></div>
+                <button id="mode-light" onclick="setTheme('light')">light</button>
+                <button id="mode-dark" onclick="setTheme('dark')">dark</button>
+            </div>
+        </div>
+    </div>
+    <div class="volume-control">
+        <span>通知音量</span>
+        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="0.1" oninput="changeVolume(this.value)">
+        <span id="volumeValue">10%</span>
+    </div>
+    <div class="tab-group">
+        <button id="tab-game" class="tab active" onclick="switchMode('game')">ゲームモード</button>
+        <button id="tab-normal" class="tab" onclick="switchMode('normal')">カスタムモード</button>
+    </div>
+    <div id="game-ui"><div id="gameGrid" class="preset-grid"></div></div>
+    <div id="normal-ui" style="display:none;">
+        <div id="normalGrid" class="preset-grid"></div>
+        <button style="width:100%; padding:14px; background:none; border:2.5px dashed var(--border); border-radius:18px; color:#64748b; font-weight:800; cursor:pointer; margin-bottom:18px;" onclick="openSetup()">+ 新しいタイマープリセットを追加</button>
+    </div>
+    <div class="start-action-bar">
+        <button id="startBtn" class="main-start-btn" onclick="startSelected()" disabled>選択した項目を開始 (0)</button>
+        <button class="reset-selection-btn" onclick="resetSelection()">キャンセル</button>
+    </div>
+    <div style="display:flex; justify-content: space-between; align-items:center; margin-bottom:12px; padding: 0 8px;">
+        <span style="font-weight:900; font-size:1rem;">実行中のタイマー <span id="timer-count" style="color:var(--primary); margin-left:4px;">0</span></span>
+        <button onclick="showDeleteConfirm()" style="font-size:0.85rem; border:none; background:none; color:var(--danger); cursor:pointer; font-weight:800;">すべて削除</button>
+    </div>
+    <div id="list" class="timer-list"></div>
+</div> <div class="footer">
+    Original by minzzv (dgdg_town_timer)
+</div>
+
+<div id="setupLayer" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="margin-top:0; font-size:1.2rem; font-weight:900;">タイマー設定</h3>
+        <input type="text" id="setupName" placeholder="項目名">
+        <div style="display:flex; gap:10px;">
+            <input type="number" id="setupMin" placeholder="分">
+            <input type="number" id="setupSec" placeholder="秒">
+        </div>
+        <div class="btn-group">
+            <button class="btn-cancel" onclick="closeSetup()">キャンセル</button>
+            <button id="deletePresetBtn" class="btn-confirm" style="display:none;" onclick="deletePreset()">削除</button>
+            <button class="btn-save" onclick="saveSetup()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div id="confirmModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="margin-top:0; font-size:1.2rem; font-weight:900;">すべて削除しますか？</h3>
+        <p style="font-size:0.95rem; color:#64748b; margin-bottom:20px;">実行中のすべてのタイマーが削除されます！</p>
+        <div class="btn-group">
+            <button class="btn-cancel" onclick="closeConfirm()">キャンセル</button>
+            <button class="btn-confirm" onclick="clearAll()">はい、削除します</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let audioCtx = null;
+    let alarmInterval = null;
+    let alarmCount = 0;
+    let isPlayingAlarm = false;
+    let alertVolume = 0.1;
+
+    function initAudio() { if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+
+    function changeVolume(v) {
+        alertVolume = parseFloat(v);
+        document.getElementById('volumeValue').innerText = Math.round(v * 100) + "%";
+        localStorage.setItem('v85_volume', v);
+        playSingleSound(); 
+    }
+
+    const gamePresets = [
+        { name: '🍅 トマト', secs: 900 }, { name: '🍍 パイナップル', secs: 1800 },
+        { name: '🥔 じゃがいも', secs: 3600 }, { name: '🥕 にんじん', secs: 7200 },
+        { name: '🌾 小麦', secs: 14400 }, { name: '🍓 いちご', secs: 21600 },
+        { name: '🍆 ナス', secs: 25200 }, { name: '🥬 レタス', secs: 28800 },
+        { name: '🍇 ぶどう', secs: 36000 }, { name: '🌽 とうもろこし', secs: 43200 },
+        { name: '🍄 トリュフ', secs: 780 }, { name: '🌳 巨木', secs: 7200 }
+    ];
+
+    let normalPresets = JSON.parse(localStorage.getItem('v85_normal')) || [];
+    let activeTimers = JSON.parse(localStorage.getItem('v85_active')) || [];
+    let selectedItems = new Set();
+
+    async function requestNotifyPermission() {
+        if (!("Notification" in window)) { alert("このブラウザは通知に対応していません。"); return; }
+        const permission = await Notification.requestPermission();
+        updateNotifyBtn(permission);
+        if (permission === "granted") sendPushNotification("通知設定が完了しました！", "時間になるとお知らせします！🌱");
+    }
+
+    function updateNotifyBtn(p) {
+        const btn = document.getElementById('notifyBtn');
+        if(!btn) return;
+        btn.innerText = p === "granted" ? "🔔 通知オン" : (p === "denied" ? "🔕 通知拒否" : "🔔 通知許可");
+        btn.classList.toggle('granted', p === "granted");
+    }
+
+    function sendPushNotification(title, body) {
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(title, { body, icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='50' font-size='48'%3E%F0%9F%8C%B1%3C/text%3E%3C/svg%3E", tag: "ddtown-timer", renotify: true });
+        }
+    }
+
+    function setTheme(m) {
+        document.body.classList.toggle('dark-mode', m === 'dark');
+        localStorage.setItem('v85_theme', m);
+    }
+
+    function switchMode(m) {
+        document.getElementById('tab-normal').classList.toggle('active', m === 'normal');
+        document.getElementById('tab-game').classList.toggle('active', m === 'game');
+        document.getElementById('normal-ui').style.display = m === 'normal' ? 'block' : 'none';
+        document.getElementById('game-ui').style.display = m === 'game' ? 'block' : 'none';
+        resetSelection();
+    }
+
+    function formatDuration(s) {
+        const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+        let res = ""; if(h>0) res += h+"時間 "; if(m>0) res += m+"分 "; if(sec>0 || (h===0&&m===0)) res += sec+"秒";
+        return res.trim();
+    }
+
+    function renderGrid(id, data, type) {
+        const grid = document.getElementById(id); if(!grid) return; grid.innerHTML = '';
+        data.forEach((p, i) => {
+            const key = `${type}-${i}`;
+            const div = document.createElement('div');
+            div.className = `preset-item ${selectedItems.has(key) ? 'selected' : ''}`;
+            div.onclick = () => { if(selectedItems.has(key)) selectedItems.delete(key); else selectedItems.add(key); updateStartBtn(); renderGrids(); };
+            div.innerHTML = `<span class="p-name">${p.name}</span><span class="p-time">${formatDuration(p.secs)}</span>${type === 'normal' ? `<div class="edit-btn" onclick="event.stopPropagation(); openSetup(${i})">修正</div>` : ''}`;
+            grid.appendChild(div);
+        });
+    }
+
+    function renderGrids() { renderGrid('gameGrid', gamePresets, 'game'); renderGrid('normalGrid', normalPresets, 'normal'); }
+    function updateStartBtn() { const b = document.getElementById('startBtn'); if(!b) return; b.disabled = selectedItems.size === 0; b.innerText = `選択した項目を開始 (${selectedItems.size})`; }
+    function resetSelection() { selectedItems.clear(); updateStartBtn(); renderGrids(); }
+    
+    function updateTimerList() {
+        const now = Date.now();
+        activeTimers.sort((a, b) => a.finishTime - b.finishTime);
+        const countSpan = document.getElementById('timer-count');
+        if(countSpan) countSpan.innerText = activeTimers.length;
+        const listDiv = document.getElementById('list'); if(!listDiv) return; listDiv.innerHTML = '';
+        
+        let endCount = 0;
+        activeTimers.forEach((t) => {
+            const rem = Math.ceil((t.finishTime - now) / 1000);
+            const progress = Math.max(0, Math.min(100, (rem / t.secs) * 100));
+            const f = new Date(t.finishTime), ampm = f.getHours() >= 12 ? '午後' : '午前', h = (f.getHours()%12||12).toString().padStart(2,'0'), m = f.getMinutes().toString().padStart(2,'0');
+
+            if (rem <= 0) { 
+                endCount++;
+                if(!t.pushed) {
+                    sendPushNotification("完了しました！", `${t.name} 時間になりました！`);
+                    t.pushed = true;
+                    saveData();
+                }
+            }
+
+            const div = document.createElement('div');
+            div.className = 'item' + (rem <= 0 ? ' end' : '');
+            div.innerHTML = `
+                <div class="progress-fill" style="width: ${progress}%"></div>
+                <div class="item-content">
+                    <div style="flex:1">
+                        <strong>${t.name}</strong>
+                        <div class="finish-info">${rem <= 0 ? '完了！' : ampm + ' ' + h + ':' + m + ' に終了'}</div>
+                        <div class="adj-btn-group">
+                            <button class="adj-btn" onclick="adjustTimeById(${t.id}, -1)">-1分</button>
+                            <button class="adj-btn" onclick="adjustTimeById(${t.id}, 1)">+1分</button>
+                        </div>
+                    </div>
+                    <div class="time-text">${rem <= 0 ? '🔔' : formatClock(rem)}</div>
+                    <button class="del-timer-btn" onclick="removeTimerById(${t.id})">削除</button>
+                </div>`;
+            listDiv.appendChild(div);
+        });
+
+        if(endCount > 0) {
+            startAlarmSequence();
+        } else {
+            stopAlarmSequence();
+        }
+    }
+
+    function formatClock(s) { let h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60; return `${h>0?h+':':''}${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`; }
+    
+    function startAlarmSequence() {
+        if(isPlayingAlarm) return;
+        isPlayingAlarm = true;
+        alarmCount = 0;
+        alarmInterval = setInterval(() => {
+            if(alarmCount >= 10) {
+                stopAlarmSequence(true); 
+                return;
+            }
+            playSingleSound();
+            alarmCount++;
+        }, 1000);
+    }
+
+    function stopAlarmSequence(isAuto = false) {
+        if(alarmInterval) {
+            clearInterval(alarmInterval);
+            alarmInterval = null;
+        }
+        if(!isAuto) {
+            isPlayingAlarm = false; 
+        }
+    }
+
+    function playSingleSound() {
+        if(!audioCtx) return;
+        const playTone = (freq, start, duration) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + start);
+            gain.gain.setValueAtTime(alertVolume, audioCtx.currentTime + start);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + start + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime + start);
+            osc.stop(audioCtx.currentTime + start + duration);
+        };
+        playTone(523.25, 0, 0.3); // ド
+        playTone(659.25, 0.15, 0.4); // ミ
+    }
+
+    function removeTimerById(id) { 
+        activeTimers = activeTimers.filter(t => t.id !== id); 
+        saveData(); 
+        updateTimerList(); 
+    }
+    function saveData() { localStorage.setItem('v85_active', JSON.stringify(activeTimers)); }
+    function openSetup(idx = -1) { currentEditIdx = idx; document.getElementById('setupLayer').style.display = 'flex'; document.getElementById('deletePresetBtn').style.display = idx === -1 ? 'none' : 'block'; if(idx !== -1) { document.getElementById('setupName').value = normalPresets[idx].name; document.getElementById('setupMin').value = Math.floor(normalPresets[idx].secs/60); document.getElementById('setupSec').value = normalPresets[idx].secs%60; } else { document.getElementById('setupName').value=''; document.getElementById('setupMin').value=''; document.getElementById('setupSec').value=''; } }
+    function closeSetup() { document.getElementById('setupLayer').style.display = 'none'; }
+    function saveSetup() { 
+        const n = document.getElementById('setupName').value || "名称未設定"; 
+        const s = (parseInt(document.getElementById('setupMin').value)||0)*60 + (parseInt(document.getElementById('setupSec').value)||0); 
+        if(s <= 0) return; 
+        if(currentEditIdx === -1) normalPresets.push({ name: n, secs: s }); 
+        else normalPresets[currentEditIdx] = { name: n, secs: s }; 
+        localStorage.setItem('v85_normal', JSON.stringify(normalPresets)); 
+        renderGrids(); 
+        closeSetup(); 
+    }
+    function deletePreset() { if(currentEditIdx !== -1) { normalPresets.splice(currentEditIdx, 1); localStorage.setItem('v85_normal', JSON.stringify(normalPresets)); renderGrids(); closeSetup(); } }
+    function showDeleteConfirm() { document.getElementById('confirmModal').style.display = 'flex'; }
+    function closeConfirm() { document.getElementById('confirmModal').style.display = 'none'; }
+    function clearAll() { activeTimers = []; stopAlarmSequence(); saveData(); updateTimerList(); closeConfirm(); }
+    function startSelected() { const now = Date.now(); selectedItems.forEach(key => { const [type, idx] = key.split('-'); const p = type === 'game' ? gamePresets[idx] : normalPresets[idx]; activeTimers.push({ id: Date.now() + Math.random(), name: p.name, secs: p.secs, finishTime: now+(p.secs*1000), pushed: false }); }); saveData(); resetSelection(); updateTimerList(); }
+    
+    function adjustTimeById(id, mins) { 
+        const target = activeTimers.find(t => t.id === id); 
+        if(target) { 
+            target.finishTime += mins * 60 * 1000; 
+            if(target.finishTime > Date.now()) {
+                target.pushed = false;
+                isPlayingAlarm = false; // 時間延長によりアラームをリセット
+            }
+            saveData(); 
+            updateTimerList(); 
+        } 
+    }
+
+    function initApp() {
+        setTheme(localStorage.getItem('v85_theme') || 'light');
+        const savedVol = localStorage.getItem('v85_volume');
+        if(savedVol !== null) {
+            alertVolume = parseFloat(savedVol);
+            const slider = document.getElementById('volumeSlider');
+            if(slider) slider.value = savedVol;
+            document.getElementById('volumeValue').innerText = Math.round(savedVol * 100) + "%";
+        }
+        if ("Notification" in window) updateNotifyBtn(Notification.permission);
+        renderGrids();
+        updateTimerList();
+        setInterval(updateTimerList, 1000);
+    }
+
+    initApp(); 
+    window.addEventListener('load', initApp);
+    document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>
